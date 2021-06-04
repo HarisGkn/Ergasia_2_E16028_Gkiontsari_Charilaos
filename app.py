@@ -27,8 +27,8 @@ def create_session(username):
     return user_uuid  
 
 def is_session_valid(user_uuid):
-    # return user_uuid in users_sessions
-    return uuids.find()
+    return user_uuid in users_sessions
+    # return uuids.find()
 
 # Εκτέλεση flask service σε debug mode, στην port 5000. 
 if __name__ == '__main__':
