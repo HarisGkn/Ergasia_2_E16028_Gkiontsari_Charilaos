@@ -32,7 +32,7 @@ def create_session(username):
 
 def is_session_valid(user_uuid):
     # return user_uuid in users_sessions
-    return uuids.find()
+    return uuids.find_one({})
 
 
 @app.route('/createUser', methods=['POST'])
@@ -125,6 +125,97 @@ def delete_product():
     else:
         return Response("Log in as admin to delete products",mimetype='application/json')
 
+@app.route('/patchProductCategory', methods=['PATCH'])
+def patch_product_category():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "name" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if uuids.find_one({'email': 'admin'}):
+        if products.find_one({'name': data['name']}):
+            products.update({'name': data['name']}, {'$set': {'category': data['category']}})
+            msg = "product updated"
+            return Response(msg, status=200, mimetype='application/json')
+        else:
+            return "No name found"
+    else:
+        return Response("Log in as admin first",mimetype='application/json') 
+
+@app.route('/patchProductPrice', methods=['PATCH'])
+def patch_product_price():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "name" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if uuids.find_one({'email': 'admin'}):
+        if products.find_one({'name': data['name']}):
+            products.update({'name': data['name']}, {'$set': {'price': data['price']}})
+            msg = "product updated"
+            return Response(msg, status=200, mimetype='application/json')
+        else:
+            return "No name found"
+    else:
+        return Response("Log in as admin first",mimetype='application/json') 
+
+@app.route('/patchProductQuantity', methods=['PATCH'])
+def patch_product_quantity():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "name" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if uuids.find_one({'email': 'admin'}):
+        if products.find_one({'name': data['name']}):
+            products.update({'name': data['name']}, {'$set': {'quantity': data['quantity']}})
+            msg = "product updated"
+            return Response(msg, status=200, mimetype='application/json')
+        else:
+            return "No name found"
+    else:
+        return Response("Log in as admin first",mimetype='application/json') 
+
+@app.route('/patchProductDescription', methods=['PATCH'])
+def patch_product_description():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "name" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if uuids.find_one({'email': 'admin'}):
+        if products.find_one({'name': data['name']}):
+            products.update({'name': data['name']}, {'$set': {'description': data['description']}})
+            msg = "product updated"
+            return Response(msg, status=200, mimetype='application/json')
+        else:
+            return "No name found"
+    else:
+        return Response("Log in as admin first",mimetype='application/json') 
 
 # Εκτέλεση flask service σε debug mode, στην port 5000. 
 if __name__ == '__main__':
