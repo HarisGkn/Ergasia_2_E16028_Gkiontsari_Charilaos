@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from flask import Flask, request, jsonify, redirect, Response
+from bson import json_util
 import json
 import uuid
 import time
@@ -34,7 +35,7 @@ def is_session_valid(user_uuid):
     # return user_uuid in users_sessions
     return uuids.find_one({})
 
-
+# sign up
 @app.route('/createUser', methods=['POST'])
 def create_user():
     # Request JSON data
@@ -53,7 +54,7 @@ def create_user():
     else:
         return Response("A user with the given email already exists", mimetype='application/json'),400 # ΠΡΟΣΘΗΚΗ STATUS
 
-
+# login
 @app.route('/login', methods=['POST'])
 def login():
     # Request JSON data
@@ -77,7 +78,7 @@ def login():
         # Μήνυμα λάθους (Λάθος email ή password)
         return Response("Wrong email or password.",mimetype='application/json'),400 # ΠΡΟΣΘΗΚΗ STATUS
 
-
+# προσθήκη προιόντων
 @app.route('/addProducts', methods=['POST'])
 def add_product():
     # Request JSON data
@@ -101,7 +102,7 @@ def add_product():
         return Response("Log in as admin to add products",mimetype='application/json')
     
 
-
+# διαγραφή προιόντος
 @app.route('/deleteProduct', methods=['DELETE'])
 def delete_product():
     # Request JSON data
@@ -125,6 +126,7 @@ def delete_product():
     else:
         return Response("Log in as admin to delete products",mimetype='application/json')
 
+# ενημέρωση κατηγορίας
 @app.route('/patchProductCategory', methods=['PATCH'])
 def patch_product_category():
     # Request JSON data
@@ -148,6 +150,7 @@ def patch_product_category():
     else:
         return Response("Log in as admin first",mimetype='application/json') 
 
+# ενημέρωση τιμής
 @app.route('/patchProductPrice', methods=['PATCH'])
 def patch_product_price():
     # Request JSON data
@@ -171,6 +174,7 @@ def patch_product_price():
     else:
         return Response("Log in as admin first",mimetype='application/json') 
 
+# ενημέρωση ποσότητας
 @app.route('/patchProductQuantity', methods=['PATCH'])
 def patch_product_quantity():
     # Request JSON data
@@ -194,6 +198,7 @@ def patch_product_quantity():
     else:
         return Response("Log in as admin first",mimetype='application/json') 
 
+# ενημέρωση περιγραφής
 @app.route('/patchProductDescription', methods=['PATCH'])
 def patch_product_description():
     # Request JSON data
@@ -216,6 +221,48 @@ def patch_product_description():
             return "No name found"
     else:
         return Response("Log in as admin first",mimetype='application/json') 
+
+
+# αναζήτηση βάσει ονόματος
+@app.route('/getByName', methods=['GET'])
+def get_by_name():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "name" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if(is_session_valid(document)):
+        product = list(products.find({'name': data['name']}))
+        return Response(json.dumps(product, default=json_util.default), status=200, mimetype='application/json')
+    else:
+        return Response("Log in first",mimetype='application/json'),400 
+
+# αναζήτηση βάσει κατηγορίας
+@app.route('/getByCat', methods=['GET'])
+def get_by_cat():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "category" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if(is_session_valid(document)):
+        product = list(products.find({'category': data['category']}))
+        return Response(json.dumps(product, default=json_util.default), status=200, mimetype='application/json')
+    else:
+        return Response("Log in first",mimetype='application/json'),400 
+
 
 # Εκτέλεση flask service σε debug mode, στην port 5000. 
 if __name__ == '__main__':
