@@ -16,8 +16,10 @@ db = client['DSMarkets']
 users = db['Users']
 products = db['Products']
 uuids = db['uuid']
+cart = db['cart']
 
 uuids.delete_many({})
+cart.delete_many({})
 
 # Initiate Flask App
 app = Flask(__name__)
@@ -94,8 +96,8 @@ def add_product():
 
     
     if uuids.find_one({'email': 'admin'}):
-        if products.insert_one({'name': data['name'], 'category':data['category'], 'quantity':data['quantity'], 'description':data['description'], 'price':data['price']}): 
-            return Response(data['name']+" was added to the MongoDB", mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
+        if products.insert_one({'id':data['id'],'name': data['name'], 'category':data['category'], 'quantity':data['quantity'], 'description':data['description'], 'price':data['price']}): 
+            return Response(data['id']+" was added to the MongoDB", mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
         else:
             return Response("A product with the given name already exists", mimetype='application/json'),400 # ΠΡΟΣΘΗΚΗ STATUS
     else:
@@ -113,12 +115,12 @@ def delete_product():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-    if not "name" in data:
+    if not "id" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
     if uuids.find_one({'email': 'admin'}):
-        if products.find_one({'name': data['name']}):
-            products.delete_one({'name': data['name']})
+        if products.find_one({'id': data['id']}):
+            products.delete_one({'id': data['id']})
             msg = "product deleted"
             return Response(msg, status=200, mimetype='application/json')
         else:
@@ -137,12 +139,12 @@ def patch_product_category():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-    if not "name" in data:
+    if not "id" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
     if uuids.find_one({'email': 'admin'}):
-        if products.find_one({'name': data['name']}):
-            products.update({'name': data['name']}, {'$set': {'category': data['category']}})
+        if products.find_one({'id': data['id']}):
+            products.update({'id': data['id']}, {'$set': {'category': data['category']}})
             msg = "product updated"
             return Response(msg, status=200, mimetype='application/json')
         else:
@@ -161,12 +163,12 @@ def patch_product_price():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-    if not "name" in data:
+    if not "id" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
     if uuids.find_one({'email': 'admin'}):
-        if products.find_one({'name': data['name']}):
-            products.update({'name': data['name']}, {'$set': {'price': data['price']}})
+        if products.find_one({'id': data['id']}):
+            products.update({'id': data['id']}, {'$set': {'price': data['price']}})
             msg = "product updated"
             return Response(msg, status=200, mimetype='application/json')
         else:
@@ -185,12 +187,12 @@ def patch_product_quantity():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-    if not "name" in data:
+    if not "id" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
     if uuids.find_one({'email': 'admin'}):
-        if products.find_one({'name': data['name']}):
-            products.update({'name': data['name']}, {'$set': {'quantity': data['quantity']}})
+        if products.find_one({'id': data['id']}):
+            products.update({'id': data['id']}, {'$set': {'quantity': data['quantity']}})
             msg = "product updated"
             return Response(msg, status=200, mimetype='application/json')
         else:
@@ -209,12 +211,12 @@ def patch_product_description():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-    if not "name" in data:
+    if not "id" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
     if uuids.find_one({'email': 'admin'}):
-        if products.find_one({'name': data['name']}):
-            products.update({'name': data['name']}, {'$set': {'description': data['description']}})
+        if products.find_one({'id': data['id']}):
+            products.update({'id': data['id']}, {'$set': {'description': data['description']}})
             msg = "product updated"
             return Response(msg, status=200, mimetype='application/json')
         else:
@@ -263,6 +265,52 @@ def get_by_cat():
     else:
         return Response("Log in first",mimetype='application/json'),400 
 
+# αναζήτηση βάσει id
+@app.route('/getById', methods=['GET'])
+def get_by_id():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "id" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if(is_session_valid(document)):
+        product = list(products.find({'id': data['id']}))
+        return Response(json.dumps(product, default=json_util.default), status=200, mimetype='application/json')
+    else:
+        return Response("Log in first",mimetype='application/json'),400 
+
+
+# προσθήκη προιόντων/cart
+@app.route('/addToCart', methods=['POST'])
+def add_to_cart():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "id" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    
+    if uuids.find_one({'email': 'admin'}):
+        if products.find_one({'id': data['id']}):
+            lst = list(products.find({'id': data['id']}))
+            print(lst)
+            cart.insert_many(lst)
+            return Response(data['id']+" was added to the cart", mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
+        else:
+            return Response("no product found",mimetype='application/json')
+    else:
+        return Response("Log in as admin to add products",mimetype='application/json')
 
 # Εκτέλεση flask service σε debug mode, στην port 5000. 
 if __name__ == '__main__':
