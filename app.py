@@ -17,6 +17,7 @@ users = db['Users']
 products = db['Products']
 uuids = db['uuid']
 cart = db['cart']
+purchased = db['purchased']
 
 uuids.delete_many({})
 cart.delete_many({})
@@ -301,10 +302,10 @@ def add_to_cart():
         return Response("Information incomplete",status=500,mimetype="application/json")
 
     
-    if uuids.find_one({'email': 'admin'}):
+    if (is_session_valid(document)):
         if products.find_one({'_id': data['id']}):
             lst = list(products.find({'_id': data['id']}))
-            print(lst)
+            # print(lst)
             cart.insert_many(lst)
             return Response("product was added to the cart", mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
         else:
@@ -312,9 +313,12 @@ def add_to_cart():
     else:
         return Response("Log in as admin to add products",mimetype='application/json')
 
+hasRun=False
 # εμφανιση καλαθιου
 @app.route('/getCart', methods=['GET'])
 def get_cart():
+    global hasRun
+    hasRun = True
     # Request JSON data
     data = None 
     try:
@@ -323,7 +327,7 @@ def get_cart():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-
+    
     if(is_session_valid(document)):
         cart1 = list(cart.find())
         agg_result= cart.aggregate(
@@ -337,11 +341,54 @@ def get_cart():
             x = i
         cart.insert_one(x)
         cart1 = list(cart.find())
-        print(x)
-        # return Response(json.dumps(cart1, default=json_util.default), status=200, mimetype='application/json')
         return Response(json.dumps(cart1, default=json_util.default), status=200, mimetype='application/json')
     else:
         return Response("Log in first",mimetype='application/json'),400 
+
+# αγορα
+@app.route('/BuyCart', methods=['POST'])
+def buy_cart():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "ccInfo" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+    if(hasRun==True):
+        if(is_session_valid(document)):
+            if(len(data["ccInfo"])==16):
+                purchased.insert_one({'cc':data["ccInfo"],'purchased':list(cart.find()), 'user': list(uuids.find())})
+                return Response("purchase completed", mimetype='application/json'),200
+            else:
+                return Response("credit card info needs to be 16 digits long",mimetype='application/json'),400 
+        else:
+            return Response("Log in first",mimetype='application/json'),400 
+    else:
+        return Response("run getCart first",mimetype='application/json'),400 
+
+# εμφανιση ιστορικού
+@app.route('/getHistory', methods=['GET'])
+def get_history():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    
+    if(is_session_valid(document)):
+        history = list(purchased.find())
+        return Response(json.dumps(history, default=json_util.default), status=200, mimetype='application/json')
+    else:
+        return Response("Log in first",mimetype='application/json'),400 
+
 
 # διαγραφή προιόντος/cart
 @app.route('/deleteProductCart', methods=['DELETE'])
@@ -357,12 +404,37 @@ def delete_product_cart():
     if not "id" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
-    if cart.find_one({'_id': data['id']}):
-        cart.delete_one({'_id': data['id']})
-        msg = "product deleted from cart"
+    if(is_session_valid(document)):
+        if cart.find_one({'_id': data['id']}):
+            cart.delete_one({'_id': data['id']})
+            msg = "product deleted from cart"
+            return Response(msg, status=200, mimetype='application/json')
+        else:
+            return "No product found"
+    else:
+        return Response("Log in first",mimetype='application/json'),400 
+
+
+# διαγραφή user
+@app.route('/deleteUser', methods=['DELETE'])
+def delete_user():
+    # Request JSON data
+    data = None 
+    try:
+        data = json.loads(request.data)
+    except Exception as e:
+        return Response("bad json content",status=500,mimetype='application/json')
+    if data == None:
+        return Response("bad request",status=500,mimetype='application/json')
+    if not "email" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+    if(is_session_valid(document)):
+        # print(uuids.find_one({"email": data['email']}))
+        users.delete_one({'email': data['email']})
+        msg = "user deleted"
         return Response(msg, status=200, mimetype='application/json')
     else:
-        return "No product found"
+        return Response("Log in first",mimetype='application/json'),400 
 
 # Εκτέλεση flask service σε debug mode, στην port 5000. 
 if __name__ == '__main__':
