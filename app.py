@@ -52,7 +52,7 @@ def create_user():
     if not "name" in data or not "password" in data or not "email" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
-    if users.update({'name': data['name'], 'password':data['password'], 'email':data['email']},data, upsert=True,): 
+    if users.update({'name': data['name'], 'password':data['password'], 'email':data['email'], 'category':data['category']},data, upsert=True,): 
         return Response(data['name']+" was added to the MongoDB", mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
     else:
         return Response("A user with the given email already exists", mimetype='application/json'),400 # ΠΡΟΣΘΗΚΗ STATUS
@@ -359,10 +359,17 @@ def buy_cart():
     if not "ccInfo" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
 
+    ccInfo = [ 
+        data['ccInfo']
+    ]
+
     if(hasRun==True):
         if(is_session_valid(document)):
             if(len(data["ccInfo"])==16):
-                purchased.insert_one({'cc':data["ccInfo"],'purchased':list(cart.find()), 'user': list(uuids.find())})
+                # purchased.insert_one({'cc':data["ccInfo"],'purchased':list(cart.find()), 'user': list(uuids.find())})
+                cart.insert({"ccInfo":ccInfo})
+                users.update({'email': 'admin'},{'$addToSet':{'history': list(cart.find())}})
+                purchased.insert_one({'purchased':list(cart.find()), 'user': list(uuids.find())})
                 return Response("purchase completed", mimetype='application/json'),200
             else:
                 return Response("credit card info needs to be 16 digits long",mimetype='application/json'),400 
@@ -382,9 +389,12 @@ def get_history():
         return Response("bad json content",status=500,mimetype='application/json')
     if data == None:
         return Response("bad request",status=500,mimetype='application/json')
-    
+    if not "email" in data:
+        return Response("Information incomplete",status=500,mimetype="application/json")
+
+
     if(is_session_valid(document)):
-        history = list(purchased.find())
+        history = list(purchased.find({"user.email": data["email"]}))
         return Response(json.dumps(history, default=json_util.default), status=200, mimetype='application/json')
     else:
         return Response("Log in first",mimetype='application/json'),400 
