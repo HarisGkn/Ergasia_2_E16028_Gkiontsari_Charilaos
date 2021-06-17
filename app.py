@@ -73,9 +73,20 @@ def login():
 
 
     if users.find({ "email" : data['email'], "password" : data['password']} ).count() > 0: 
+        y=""
+        agg_result= users.aggregate(
+            [{
+            "$group" : 
+                {"_id" : None,
+                "category": { "$first": "$category" }
+                 }}
+            ])
+        for i in agg_result:
+            y = i
+
         user_uuid = create_session(data['email'])
-        res = {"uuid": user_uuid, "email": data['email']}
-        uuids.insert_one({'email': data['email'] ,"uuid": user_uuid})
+        res = {"uuid": user_uuid, "email": data['email'], "category": y}
+        uuids.insert_one({'email': data['email'] ,"uuid": user_uuid, "category": y})
         return Response(json.dumps(res), mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
     else:
         # Μήνυμα λάθους (Λάθος email ή password)
@@ -329,7 +340,6 @@ def get_cart():
         return Response("bad request",status=500,mimetype='application/json')
     
     if(is_session_valid(document)):
-        cart1 = list(cart.find())
         agg_result= cart.aggregate(
             [{
             "$group" : 
@@ -367,7 +377,7 @@ def buy_cart():
         if(is_session_valid(document)):
             if(len(data["ccInfo"])==16):
                 # purchased.insert_one({'cc':data["ccInfo"],'purchased':list(cart.find()), 'user': list(uuids.find())})
-                cart.insert({"ccInfo":ccInfo})
+                # cart.insert({"ccInfo":ccInfo})
                 users.update({'email': 'admin'},{'$addToSet':{'history': list(cart.find())}})
                 purchased.insert_one({'purchased':list(cart.find()), 'user': list(uuids.find())})
                 return Response("purchase completed", mimetype='application/json'),200
