@@ -41,7 +41,6 @@ def is_session_valid(user_uuid):
 # sign up
 @app.route('/createUser', methods=['POST'])
 def create_user():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -60,7 +59,6 @@ def create_user():
 # login
 @app.route('/login', methods=['POST'])
 def login():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -89,13 +87,11 @@ def login():
         uuids.insert_one({'email': data['email'] ,"uuid": user_uuid, "category": y})
         return Response(json.dumps(res), mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
     else:
-        # Μήνυμα λάθους (Λάθος email ή password)
         return Response("Wrong email or password.",mimetype='application/json'),400 # ΠΡΟΣΘΗΚΗ STATUS
 
 # προσθήκη προιόντων
 @app.route('/addProducts', methods=['POST'])
 def add_product():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -119,7 +115,6 @@ def add_product():
 # διαγραφή προιόντος
 @app.route('/deleteProduct', methods=['DELETE'])
 def delete_product():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -143,7 +138,6 @@ def delete_product():
 # ενημέρωση κατηγορίας
 @app.route('/patchProductCategory', methods=['PATCH'])
 def patch_product_category():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -167,7 +161,6 @@ def patch_product_category():
 # ενημέρωση τιμής
 @app.route('/patchProductPrice', methods=['PATCH'])
 def patch_product_price():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -191,7 +184,6 @@ def patch_product_price():
 # ενημέρωση ποσότητας
 @app.route('/patchProductQuantity', methods=['PATCH'])
 def patch_product_quantity():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -215,7 +207,6 @@ def patch_product_quantity():
 # ενημέρωση περιγραφής
 @app.route('/patchProductDescription', methods=['PATCH'])
 def patch_product_description():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -240,7 +231,6 @@ def patch_product_description():
 # αναζήτηση βάσει ονόματος
 @app.route('/getByName', methods=['GET'])
 def get_by_name():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -260,7 +250,6 @@ def get_by_name():
 # αναζήτηση βάσει κατηγορίας
 @app.route('/getByCat', methods=['GET'])
 def get_by_cat():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -280,7 +269,6 @@ def get_by_cat():
 # αναζήτηση βάσει id
 @app.route('/getById', methods=['GET'])
 def get_by_id():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -301,7 +289,6 @@ def get_by_id():
 # προσθήκη προιόντων/cart
 @app.route('/addToCart', methods=['POST'])
 def add_to_cart():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -316,7 +303,6 @@ def add_to_cart():
     if (is_session_valid(document)):
         if products.find_one({'_id': data['id']}):
             lst = list(products.find({'_id': data['id']}))
-            # print(lst)
             cart.insert_many(lst)
             return Response("product was added to the cart", mimetype='application/json'),200 # ΠΡΟΣΘΗΚΗ STATUS
         else:
@@ -330,7 +316,6 @@ hasRun=False
 def get_cart():
     global hasRun
     hasRun = True
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -358,7 +343,6 @@ def get_cart():
 # αγορα
 @app.route('/BuyCart', methods=['POST'])
 def buy_cart():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -376,8 +360,6 @@ def buy_cart():
     if(hasRun==True):
         if(is_session_valid(document)):
             if(len(data["ccInfo"])==16):
-                # purchased.insert_one({'cc':data["ccInfo"],'purchased':list(cart.find()), 'user': list(uuids.find())})
-                # cart.insert({"ccInfo":ccInfo})
                 users.update({'email': 'admin'},{'$addToSet':{'history': list(cart.find())}})
                 purchased.insert_one({'purchased':list(cart.find()), 'user': list(uuids.find())})
                 return Response("purchase completed", mimetype='application/json'),200
@@ -391,7 +373,6 @@ def buy_cart():
 # εμφανιση ιστορικού
 @app.route('/getHistory', methods=['GET'])
 def get_history():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -413,7 +394,6 @@ def get_history():
 # διαγραφή προιόντος/cart
 @app.route('/deleteProductCart', methods=['DELETE'])
 def delete_product_cart():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -438,7 +418,6 @@ def delete_product_cart():
 # διαγραφή user
 @app.route('/deleteUser', methods=['DELETE'])
 def delete_user():
-    # Request JSON data
     data = None 
     try:
         data = json.loads(request.data)
@@ -449,10 +428,13 @@ def delete_user():
     if not "email" in data:
         return Response("Information incomplete",status=500,mimetype="application/json")
     if(is_session_valid(document)):
-        # print(uuids.find_one({"email": data['email']}))
-        users.delete_one({'email': data['email']})
-        msg = "user deleted"
-        return Response(msg, status=200, mimetype='application/json')
+        if(users.find_one({"email": data["email"]})):
+            users.delete_one({'email': data['email']})
+            msg = "user deleted"
+            return Response(msg, status=200, mimetype='application/json')
+        else:
+            return Response("user not found",mimetype='application/json'),400 
+        
     else:
         return Response("Log in first",mimetype='application/json'),400 
 
